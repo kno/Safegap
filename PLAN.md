@@ -11,8 +11,8 @@ estimar distancias y calcular velocidad relativa, alertando al conductor en tiem
 |---|---|---|
 | Lenguaje | Kotlin | Coroutines + Flow para el pipeline de cámara |
 | Cámara | CameraX 1.4.x | Lifecycle-aware, backpressure `KEEP_ONLY_LATEST` |
-| Detección ML | TFLite + GPU Delegate | Control total del modelo, 3-5x más rápido que CPU |
-| Modelo | EfficientDet-Lite0 (INT8) | ~30ms en GPU, entrada 320x320 |
+| Detección ML | TFLite Task Vision 0.4.4 + NNAPI | Control total del modelo, aceleración INT8 vía DSP/NPU |
+| Modelo | EfficientDet-Lite0 (INT8) | ~19-20ms con NNAPI, entrada 320x320 |
 | UI | Jetpack Compose | HUD sobre canvas, sin recomposición innecesaria |
 | DI | Hilt | Scoping correcto de lifecycle |
 | Settings | DataStore | Umbrales configurables persistidos |
@@ -54,7 +54,7 @@ estimar distancias y calcular velocidad relativa, alertando al conductor en tiem
 [ImageConverter]  YUV→Bitmap + resize 320x320
        |
        v
-[ObjectDetector]  TFLite GPU Delegate ~30-50ms
+[ObjectDetector]  TFLite NNAPI Delegate ~19-20ms
        |           → List<RawDetection>(bbox, class, confidence)
        v
 [IoUTracker]      greedy IoU matching entre frames
@@ -328,7 +328,7 @@ Safegap/
 
 ## Fases de implementación
 
-### Fase 1 — Fundamentos
+### Fase 1 — Fundamentos ✓
 - Setup Gradle multi-módulo + version catalog (`libs.versions.toml`)
 - Modelos core: `RawDetection`, `TrackedObject`, `AlertLevel`
 - Módulo `:camera`: binding CameraX, `FrameProducer` con SharedFlow
@@ -336,12 +336,16 @@ Safegap/
 - `MainActivity` con `CameraPreviewSurface` — confirmar que el preview funciona
 - Scripts de compilación y despliegue en dispositivo real local
 
-### Fase 2 — Detección
-- Integrar TFLite Task Library en `:detection`
-- Cargar modelo EfficientDet-Lite0, implementar `ObjectDetector`
-- Implementar `ImageConverter` (YUV→Bitmap)
-- Cablear `FrameProducer` → `ObjectDetector` → logs
-- Implementar `IoUTracker` + tests unitarios con bboxes sintéticos
+### Fase 2 — Detección ✓
+- ✅ Integrar TFLite Task Vision 0.4.4 en `:detection`
+- ✅ Cargar modelo EfficientDet-Lite0 INT8, implementar `ObjectDetector`
+- ✅ `ImageConverter` no necesario: `ImageProxy.toBitmap()` de CameraX + TensorImage maneja el resize
+- ✅ Cablear `FrameProducer` → `DetectionPipeline` → `ObjectDetector` → `IoUTracker` → logs en `DrivingService`
+- ✅ Implementar `IoUTracker` (greedy IoU, clase restringida, grace period 5 frames) + 12 tests unitarios
+- ✅ Rendimiento medido en dispositivo: ~19-20ms por frame
+
+> **Nota**: El modelo INT8 no es compatible con GPU Delegate (falla en inferencia).
+> Se usa NNAPI Delegate (acelera INT8 vía DSP/NPU) con fallback a CPU.
 
 ### Fase 3 — Estimación
 - `DistanceEstimator` (método tamaño aparente) + tests con distancias conocidas
