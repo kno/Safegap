@@ -9,9 +9,15 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
 import com.safegap.app.R
+import com.safegap.camera.FrameProducer
 import com.safegap.core.Constants
+import com.safegap.detection.DetectionPipeline
+import com.safegap.detection.ObjectDetector
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class DrivingService : LifecycleService() {
@@ -19,6 +25,10 @@ class DrivingService : LifecycleService() {
     companion object {
         private const val TAG = "SafeGap.Service"
     }
+
+    @Inject lateinit var objectDetector: ObjectDetector
+    @Inject lateinit var detectionPipeline: DetectionPipeline
+    @Inject lateinit var frameProducer: FrameProducer
 
     override fun onCreate() {
         super.onCreate()
@@ -35,6 +45,8 @@ class DrivingService : LifecycleService() {
             startForeground(Constants.NOTIFICATION_ID, notification)
         }
         Log.i(TAG, "DrivingService started")
+
+        startPipeline()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -43,8 +55,33 @@ class DrivingService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        objectDetector.close()
         super.onDestroy()
         Log.i(TAG, "DrivingService stopped")
+    }
+
+    private fun startPipeline() {
+        // Initialize detector (GPU delegate ~500ms)
+        lifecycleScope.launch {
+            objectDetector.initialize()
+        }
+
+        // Collect detection results
+        lifecycleScope.launch {
+            detectionPipeline.process(frameProducer.frames).collect { trackedObjects ->
+                Log.d(TAG, "Tracked objects: ${trackedObjects.size}")
+                for (obj in trackedObjects) {
+                    Log.d(
+                        TAG,
+                        "  [${obj.trackId}] ${obj.detection.className} " +
+                            "conf=${obj.detection.confidence} " +
+                            "bbox=${obj.detection.boundingBox}",
+                    )
+                }
+                // TODO: Phase 3 — Feed into DistanceEstimator → SpeedTracker
+                // TODO: Phase 4 — Feed into AlertEngine → HudRepository
+            }
+        }
     }
 
     private fun createNotificationChannel() {
