@@ -33,7 +33,7 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ./gradl
 :app          → Activity, Foreground Service, DI wiring
 :camera       → CameraX binding, FrameProducer (SharedFlow)
 :detection    → TFLite ObjectDetector, IoU Tracker, DetectionPipeline
-:estimation   → Distance/Speed estimation, Kalman filter (stub)
+:estimation   → DistanceEstimator, KalmanFilter1D, SpeedTracker, TTC
 :alert        → Alert engine, audio player (stub)
 :ui           → Compose HUD screen, overlays, theme
 :core         → Shared models (RawDetection, TrackedObject, AlertLevel), constants

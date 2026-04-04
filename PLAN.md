@@ -347,11 +347,12 @@ Safegap/
 > **Nota**: El modelo INT8 no es compatible con GPU Delegate (falla en inferencia).
 > Se usa NNAPI Delegate (acelera INT8 vía DSP/NPU) con fallback a CPU.
 
-### Fase 3 — Estimación
-- `DistanceEstimator` (método tamaño aparente) + tests con distancias conocidas
-- `KalmanFilter1D` + tests con series ruidosas
-- `SpeedTracker` (ventana deslizante) + tests con series temporales sintéticas
-- Cálculo de TTC
+### Fase 3 — Estimación ✓
+- ✅ `CameraIntrinsics` (focal/sensor con defaults) + `KnownObjectHeights` (alturas COCO)
+- ✅ `DistanceEstimator` (tamaño aparente, filtros de confianza y clipping) + 9 tests
+- ✅ `KalmanFilter1D` (estado [distancia, velocidad], ruido R adaptativo) + 5 tests
+- ✅ `SpeedTracker` (ventana deslizante N=5, TTC, Kalman por track) + 8 tests
+- ✅ Cableado en `DrivingService`: detect → track → estimate → log distancia/speed/TTC
 
 ### Fase 4 — Alertas y UI
 - `AlertEngine` con umbrales y debounce
