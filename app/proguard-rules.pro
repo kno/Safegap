@@ -1,0 +1,1 @@
+# SafeGap ProGuard rules

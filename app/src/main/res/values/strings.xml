@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SafeGap</string>
+    <string name="notification_channel_name">Conduccion activa</string>
+    <string name="notification_channel_description">Notificacion mientras SafeGap esta monitorizando</string>
+    <string name="notification_text">SafeGap activo</string>
+</resources>
