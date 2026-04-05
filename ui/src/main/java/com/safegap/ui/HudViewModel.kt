@@ -1,15 +1,28 @@
 package com.safegap.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.safegap.core.HudRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
-class HudViewModel @Inject constructor() : ViewModel() {
+class HudViewModel @Inject constructor(
+    hudRepository: HudRepository,
+) : ViewModel() {
 
-    private val _state = MutableStateFlow(HudState())
-    val state: StateFlow<HudState> = _state.asStateFlow()
+    val state: StateFlow<HudState> = hudRepository.hudData
+        .map { data ->
+            HudState(
+                isCameraActive = true,
+                alertLevel = data.alertLevel,
+                trackedObjects = data.trackedObjects,
+                closestThreat = data.closestThreat,
+            )
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HudState())
 }
