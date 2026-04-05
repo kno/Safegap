@@ -6,21 +6,21 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.nativeCanvas
+import com.safegap.core.DisplayState
 import com.safegap.core.model.AlertLevel
-import com.safegap.core.model.TrackedObject
 import com.safegap.ui.theme.CriticalRed
 import com.safegap.ui.theme.SafeGreen
 import com.safegap.ui.theme.WarningAmber
 import kotlin.math.abs
 
 /**
- * Canvas overlay drawing bounding boxes with distance labels
- * for each tracked object. Uses native Android Canvas for
- * text rendering performance.
+ * Canvas overlay drawing smoothed bounding boxes with distance labels
+ * for each display state. Uses displayConfidence as alpha so tracks
+ * fade out gracefully during the grace period.
  */
 @Composable
 fun DetectionOverlay(
-    trackedObjects: List<TrackedObject>,
+    displayStates: List<DisplayState>,
     alertLevel: AlertLevel,
     modifier: Modifier = Modifier,
 ) {
@@ -44,22 +44,26 @@ fun DetectionOverlay(
             style = Paint.Style.FILL
         }
 
-        for (obj in trackedObjects) {
-            val bbox = obj.detection.boundingBox
-            val left = bbox.left * canvasWidth
-            val top = bbox.top * canvasHeight
-            val right = bbox.right * canvasWidth
-            val bottom = bbox.bottom * canvasHeight
+        for (ds in displayStates) {
+            val left = ds.smoothedBox.left * canvasWidth
+            val top = ds.smoothedBox.top * canvasHeight
+            val right = ds.smoothedBox.right * canvasWidth
+            val bottom = ds.smoothedBox.bottom * canvasHeight
 
-            // Color based on object-level distance/TTC
+            // Alpha from displayConfidence (fades during grace period)
+            val alpha = (ds.displayConfidence * 255).toInt().coerceIn(0, 255)
+
+            // Color based on object-level distance
+            val dist = ds.displayDistanceM
             val color = when {
-                obj.distanceMeters != null && obj.distanceMeters!! < 5f -> CriticalRed
-                obj.distanceMeters != null && obj.distanceMeters!! < 15f -> WarningAmber
+                dist != null && dist < 5f -> CriticalRed
+                dist != null && dist < 15f -> WarningAmber
                 else -> SafeGreen
             }
             val androidColor = color.hashCode()
 
             boxPaint.color = androidColor
+            boxPaint.alpha = alpha
             bgPaint.color = androidColor
 
             drawContext.canvas.nativeCanvas.apply {
@@ -67,24 +71,21 @@ fun DetectionOverlay(
                 drawRect(left, top, right, bottom, boxPaint)
 
                 // Label: "car 12.3m 25km/h"
-                val distance = obj.distanceMeters
-                val speed = obj.speedMps
                 val label = buildString {
-                    append(obj.detection.className)
-                    if (distance != null) {
-                        append(" ${"%.1f".format(distance)}m")
-                    }
-                    if (speed != null && abs(speed) >= 0.5f) {
-                        append(" ${"%.0f".format(abs(speed * 3.6f))}km/h")
+                    append(ds.className)
+                    ds.displayDistanceM?.let { append(" ${"%.1f".format(it)}m") }
+                    ds.displaySpeedMps?.let { speed ->
+                        if (abs(speed) >= 0.5f) {
+                            append(" ${"%.0f".format(abs(speed * 3.6f))}km/h")
+                        }
                     }
                 }
 
-                textPaint.color = androidColor
                 val textWidth = textPaint.measureText(label)
                 val textHeight = textPaint.textSize
 
                 // Background rect for text readability
-                bgPaint.alpha = 160
+                bgPaint.alpha = (160 * ds.displayConfidence).toInt().coerceIn(0, 255)
                 drawRect(
                     left,
                     top - textHeight - 4f,
@@ -95,6 +96,7 @@ fun DetectionOverlay(
 
                 // Text
                 textPaint.color = android.graphics.Color.WHITE
+                textPaint.alpha = alpha
                 drawText(label, left + 4f, top - 6f, textPaint)
             }
         }

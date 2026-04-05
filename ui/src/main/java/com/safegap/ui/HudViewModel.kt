@@ -20,7 +20,7 @@ class HudViewModel @Inject constructor(
             HudState(
                 isCameraActive = true,
                 alertLevel = data.alertLevel,
-                trackedObjects = data.trackedObjects,
+                displayStates = data.displayStates,
                 closestThreat = data.closestThreat,
                 fps = data.fps,
                 thermalThrottled = data.thermalThrottled,

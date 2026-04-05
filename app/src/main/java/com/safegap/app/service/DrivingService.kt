@@ -16,6 +16,7 @@ import com.safegap.alert.AudioAlertPlayer
 import com.safegap.app.R
 import com.safegap.camera.FrameProducer
 import com.safegap.core.Constants
+import com.safegap.core.DisplayStateManager
 import com.safegap.core.HudRepository
 import com.safegap.core.SettingsRepository
 import com.safegap.detection.DetectionPipeline
@@ -41,6 +42,7 @@ class DrivingService : LifecycleService() {
     @Inject lateinit var speedTracker: SpeedTracker
     @Inject lateinit var alertEngine: AlertEngine
     @Inject lateinit var audioAlertPlayer: AudioAlertPlayer
+    @Inject lateinit var displayStateManager: DisplayStateManager
     @Inject lateinit var hudRepository: HudRepository
     @Inject lateinit var settingsRepository: SettingsRepository
 
@@ -79,6 +81,7 @@ class DrivingService : LifecycleService() {
     override fun onDestroy() {
         objectDetector.close()
         audioAlertPlayer.release()
+        displayStateManager.reset()
         hudRepository.reset()
         super.onDestroy()
         Log.i(TAG, "DrivingService stopped")
@@ -155,10 +158,13 @@ class DrivingService : LifecycleService() {
                 // Audio
                 audioAlertPlayer.play(alertResult.level)
 
+                // Stabilize display output
+                val displayStates = displayStateManager.update(enriched)
+
                 // Push to UI
                 hudRepository.update(
                     alertLevel = alertResult.level,
-                    trackedObjects = enriched,
+                    displayStates = displayStates,
                     closestThreat = alertResult.closestThreat,
                     fps = currentFps,
                     thermalThrottled = thermalThrottled,

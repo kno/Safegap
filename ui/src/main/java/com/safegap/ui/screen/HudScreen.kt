@@ -57,7 +57,7 @@ fun HudScreen(
 
             // Detection bounding boxes overlay
             DetectionOverlay(
-                trackedObjects = state.trackedObjects,
+                displayStates = state.displayStates,
                 alertLevel = state.alertLevel,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -89,7 +89,7 @@ fun HudScreen(
                 DebugOverlay(
                     fps = state.fps,
                     thermalThrottled = state.thermalThrottled,
-                    objectCount = state.trackedObjects.size,
+                    objectCount = state.displayStates.size,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp),

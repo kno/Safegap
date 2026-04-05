@@ -69,18 +69,21 @@ estimar distancias y calcular velocidad relativa, alertando al conductor en tiem
 [AlertEngine]     umbral TTC/distancia + debounce
        |           → AlertLevel: SAFE | WARNING | CRITICAL
        |
-       +---> [AudioAlertPlayer]  SoundPool
+       +---> [AudioAlertPlayer]  ToneGenerator
        |
        v
-[HudRepository]   StateFlow<HudState>
+[DisplayStateManager]  estabilización de display
+       |   → birth threshold (3 frames), EMA bbox/valores,
+       |     dead-reckoning en grace period, median history
+       v
+[HudRepository]   StateFlow<HudData>
        v
 [HudViewModel]    StateFlow<HudState>
        v
 [HudScreen Compose]
        +-- CameraPreviewSurface  (PreviewView hardware-accelerated)
-       +-- DetectionOverlay      (Canvas: bounding boxes + etiquetas de distancia)
+       +-- DetectionOverlay      (Canvas: bboxes suavizados + alpha por confianza)
        +-- AlertBanner           (color: verde/amarillo/rojo + texto mínimo)
-       +-- SpeedBadge            (velocidad relativa del objeto más cercano)
 ```
 
 ### Modelo de hilos
@@ -176,7 +179,23 @@ es más grave).
 **Debounce**: el nivel sube inmediatamente; baja solo tras 3 frames consecutivos
 en nivel menor. Evita alertas parpadeantes.
 
-### 7. Tracking IoU
+### 7. Estabilización de display (DisplayStateManager)
+
+Suaviza la salida del pipeline para eliminar parpadeo y jitter en la UI:
+
+1. **Birth threshold**: un track debe detectarse durante 3 frames consecutivos
+   antes de aparecer en pantalla. Elimina detecciones espurias.
+2. **EMA de bounding box**: suavizado exponencial (α=0.4) de las 4 coordenadas
+   del bbox normalizado. Elimina jitter frame-a-frame.
+3. **EMA de valores**: distancia y velocidad suavizadas con α=0.35, usando
+   la mediana de las últimas 8 muestras de distancia como base (robusto a outliers).
+4. **Grace period con dead-reckoning**: cuando un track pierde detección, el bbox
+   se proyecta hacia adelante usando la última velocidad conocida. La confianza
+   de display decae linealmente a cero durante 8 frames.
+5. **displayConfidence como alpha**: la UI usa `displayConfidence` (1.0→0.0)
+   como alpha del bbox y etiquetas, logrando un fade-out suave.
+
+### 8. Tracking IoU
 
 Matching greedy entre detecciones de frames consecutivos de la misma clase:
 
