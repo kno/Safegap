@@ -30,7 +30,6 @@ import com.safegap.ui.components.AlertBanner
 import com.safegap.ui.components.CameraPreviewSurface
 import com.safegap.ui.components.DebugOverlay
 import com.safegap.ui.components.DetectionOverlay
-import com.safegap.ui.components.SpeedBadge
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -68,14 +67,6 @@ fun HudScreen(
                 alertLevel = state.alertLevel,
                 closestThreat = state.closestThreat,
                 modifier = Modifier.align(Alignment.TopCenter),
-            )
-
-            // Speed badge (bottom-right)
-            SpeedBadge(
-                closestThreat = state.closestThreat,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
             )
 
             // Settings button (bottom-left)

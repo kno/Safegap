@@ -11,6 +11,7 @@ import com.safegap.core.model.TrackedObject
 import com.safegap.ui.theme.CriticalRed
 import com.safegap.ui.theme.SafeGreen
 import com.safegap.ui.theme.WarningAmber
+import kotlin.math.abs
 
 /**
  * Canvas overlay drawing bounding boxes with distance labels
@@ -65,12 +66,17 @@ fun DetectionOverlay(
                 // Bounding box
                 drawRect(left, top, right, bottom, boxPaint)
 
-                // Label: "car 12.3m"
+                // Label: "car 12.3m 25km/h"
                 val distance = obj.distanceMeters
-                val label = if (distance != null) {
-                    "${obj.detection.className} ${"%.1f".format(distance)}m"
-                } else {
-                    obj.detection.className
+                val speed = obj.speedMps
+                val label = buildString {
+                    append(obj.detection.className)
+                    if (distance != null) {
+                        append(" ${"%.1f".format(distance)}m")
+                    }
+                    if (speed != null && abs(speed) >= 0.5f) {
+                        append(" ${"%.0f".format(abs(speed * 3.6f))}km/h")
+                    }
                 }
 
                 textPaint.color = androidColor
