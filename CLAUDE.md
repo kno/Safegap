@@ -25,6 +25,7 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ./gradl
 - **ML**: TFLite Task Vision 0.4.4 + NNAPI Delegate (EfficientDet-Lite0 INT8)
 - **UI**: Jetpack Compose (BOM 2026.03.00)
 - **DI**: Hilt 2.59.2 (KSP 2.2.10-2.0.2)
+- **Settings**: DataStore Preferences 1.1.3
 - **Min SDK**: 26 (Android 8.0), **Target SDK**: 35, **Compile SDK**: 36
 
 ## Module Structure
@@ -35,8 +36,8 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ./gradl
 :detection    → TFLite ObjectDetector, IoU Tracker, DetectionPipeline
 :estimation   → DistanceEstimator, KalmanFilter1D, SpeedTracker, TTC
 :alert        → AlertEngine (thresholds + debounce), AudioAlertPlayer (ToneGenerator)
-:ui           → HudScreen, DetectionOverlay, AlertBanner, SpeedBadge, HudTheme
-:core         → Shared models, constants, HudRepository (StateFlow Service↔UI)
+:ui           → HudScreen, SettingsScreen, DetectionOverlay, AlertBanner, SpeedBadge, DebugOverlay
+:core         → Shared models, constants, HudRepository, SettingsRepository (DataStore)
 ```
 
 ## Code Conventions

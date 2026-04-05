@@ -363,11 +363,14 @@ Safegap/
 - ✅ `SpeedBadge` — velocidad relativa en km/h del objeto más cercano
 - ✅ Pipeline completo end-to-end: Camera → Detect → Track → Estimate → Alert → Audio + UI
 
-### Fase 5 — Pulido
-- Pantalla de settings (umbrales, altura de cámara, calibración)
-- Respuesta a throttling térmico
-- Debug overlay de FPS (solo builds de desarrollo)
-- Pruebas en coche real y ajuste de umbrales
+### Fase 5 — Pulido ✓
+- ✅ `SettingsRepository` con DataStore: umbrales alerta (TTC/distancia), calibración cámara (focal, sensor, altura)
+- ✅ `SettingsScreen` Compose con sliders para todos los parámetros, navegación desde HUD
+- ✅ `AlertEngine` lee umbrales desde settings en tiempo real
+- ✅ Respuesta a throttling térmico: `PowerManager.ThermalStatus`, skip 1/2 frames en SEVERE
+- ✅ Debug overlay FPS + conteo objetos + estado térmico (solo builds debug, `BuildConfig.DEBUG`)
+- ✅ Contador FPS en DrivingService con ventana de 1s
+- Pendiente: pruebas en coche real y ajuste de umbrales
 
 ---
 
