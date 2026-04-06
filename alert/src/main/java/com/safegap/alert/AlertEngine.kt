@@ -24,10 +24,20 @@ class AlertEngine @Inject constructor() {
         private const val PERSON_TTC_MULTIPLIER = 2.0f
     }
 
-    private var criticalTtcS = SafeGapSettings.DEFAULT_CRITICAL_TTC_S
-    private var criticalDistanceM = SafeGapSettings.DEFAULT_CRITICAL_DISTANCE_M
-    private var warningTtcS = SafeGapSettings.DEFAULT_WARNING_TTC_S
-    private var warningDistanceM = SafeGapSettings.DEFAULT_WARNING_DISTANCE_M
+    private data class Thresholds(
+        val criticalTtcS: Float,
+        val criticalDistanceM: Float,
+        val warningTtcS: Float,
+        val warningDistanceM: Float,
+    )
+
+    @Volatile
+    private var thresholds = Thresholds(
+        criticalTtcS = SafeGapSettings.DEFAULT_CRITICAL_TTC_S,
+        criticalDistanceM = SafeGapSettings.DEFAULT_CRITICAL_DISTANCE_M,
+        warningTtcS = SafeGapSettings.DEFAULT_WARNING_TTC_S,
+        warningDistanceM = SafeGapSettings.DEFAULT_WARNING_DISTANCE_M,
+    )
 
     private var currentLevel = AlertLevel.SAFE
     /** The raw level being sustained, waiting to become active. */
@@ -36,10 +46,12 @@ class AlertEngine @Inject constructor() {
     private var pendingSinceMs = 0L
 
     fun updateSettings(settings: SafeGapSettings) {
-        criticalTtcS = settings.criticalTtcS
-        criticalDistanceM = settings.criticalDistanceM
-        warningTtcS = settings.warningTtcS
-        warningDistanceM = settings.warningDistanceM
+        thresholds = Thresholds(
+            criticalTtcS = settings.criticalTtcS,
+            criticalDistanceM = settings.criticalDistanceM,
+            warningTtcS = settings.warningTtcS,
+            warningDistanceM = settings.warningDistanceM,
+        )
     }
 
     /**
@@ -85,14 +97,17 @@ class AlertEngine @Inject constructor() {
         val ttc = obj.ttcSeconds
         val isPerson = obj.detection.className == "person"
 
+        // Snapshot thresholds atomically to prevent mixed old/new reads
+        val t = thresholds
+
         // CRITICAL check — person has elevated TTC threshold
-        val critTtc = if (isPerson) criticalTtcS * PERSON_TTC_MULTIPLIER else criticalTtcS
-        if ((ttc != null && ttc < critTtc) || distance < criticalDistanceM) {
+        val critTtc = if (isPerson) t.criticalTtcS * PERSON_TTC_MULTIPLIER else t.criticalTtcS
+        if ((ttc != null && ttc < critTtc) || distance < t.criticalDistanceM) {
             return AlertLevel.CRITICAL
         }
 
         // WARNING check
-        if ((ttc != null && ttc < warningTtcS) || distance < warningDistanceM) {
+        if ((ttc != null && ttc < t.warningTtcS) || distance < t.warningDistanceM) {
             return AlertLevel.WARNING
         }
 

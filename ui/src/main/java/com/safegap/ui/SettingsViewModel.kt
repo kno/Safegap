@@ -19,10 +19,25 @@ class SettingsViewModel @Inject constructor(
     val settings: StateFlow<SafeGapSettings> = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SafeGapSettings())
 
-    fun updateCriticalTtc(value: Float) = updateAlert { it.copy(criticalTtcS = value) }
-    fun updateCriticalDistance(value: Float) = updateAlert { it.copy(criticalDistanceM = value) }
-    fun updateWarningTtc(value: Float) = updateAlert { it.copy(warningTtcS = value) }
-    fun updateWarningDistance(value: Float) = updateAlert { it.copy(warningDistanceM = value) }
+    fun updateCriticalTtc(value: Float) = updateAlert {
+        it.copy(criticalTtcS = value
+            .coerceAtLeast(0.5f)
+            .coerceAtMost(it.warningTtcS - 0.5f))
+    }
+
+    fun updateCriticalDistance(value: Float) = updateAlert {
+        it.copy(criticalDistanceM = value
+            .coerceAtLeast(1f)
+            .coerceAtMost(it.warningDistanceM - 1f))
+    }
+
+    fun updateWarningTtc(value: Float) = updateAlert {
+        it.copy(warningTtcS = value.coerceAtLeast(it.criticalTtcS + 0.5f))
+    }
+
+    fun updateWarningDistance(value: Float) = updateAlert {
+        it.copy(warningDistanceM = value.coerceAtLeast(it.criticalDistanceM + 1f))
+    }
 
     fun updateSmoothingWindow(value: Int) {
         viewModelScope.launch {

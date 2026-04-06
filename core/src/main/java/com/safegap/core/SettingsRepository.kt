@@ -36,14 +36,14 @@ class SettingsRepository @Inject constructor(
 
     val settings: Flow<SafeGapSettings> = context.dataStore.data.map { prefs ->
         SafeGapSettings(
-            criticalTtcS = prefs[Keys.CRITICAL_TTC] ?: SafeGapSettings.DEFAULT_CRITICAL_TTC_S,
-            criticalDistanceM = prefs[Keys.CRITICAL_DISTANCE] ?: SafeGapSettings.DEFAULT_CRITICAL_DISTANCE_M,
-            warningTtcS = prefs[Keys.WARNING_TTC] ?: SafeGapSettings.DEFAULT_WARNING_TTC_S,
-            warningDistanceM = prefs[Keys.WARNING_DISTANCE] ?: SafeGapSettings.DEFAULT_WARNING_DISTANCE_M,
-            cameraHeightM = prefs[Keys.CAMERA_HEIGHT] ?: SafeGapSettings.DEFAULT_CAMERA_HEIGHT_M,
-            focalLengthMm = prefs[Keys.FOCAL_LENGTH] ?: SafeGapSettings.DEFAULT_FOCAL_LENGTH_MM,
-            sensorHeightMm = prefs[Keys.SENSOR_HEIGHT] ?: SafeGapSettings.DEFAULT_SENSOR_HEIGHT_MM,
-            smoothingWindowSize = prefs[Keys.SMOOTHING_WINDOW] ?: SafeGapSettings.DEFAULT_SMOOTHING_WINDOW,
+            criticalTtcS = (prefs[Keys.CRITICAL_TTC] ?: SafeGapSettings.DEFAULT_CRITICAL_TTC_S).coerceIn(0.5f, 10f),
+            criticalDistanceM = (prefs[Keys.CRITICAL_DISTANCE] ?: SafeGapSettings.DEFAULT_CRITICAL_DISTANCE_M).coerceIn(1f, 40f),
+            warningTtcS = (prefs[Keys.WARNING_TTC] ?: SafeGapSettings.DEFAULT_WARNING_TTC_S).coerceIn(1f, 10f),
+            warningDistanceM = (prefs[Keys.WARNING_DISTANCE] ?: SafeGapSettings.DEFAULT_WARNING_DISTANCE_M).coerceIn(5f, 40f),
+            cameraHeightM = (prefs[Keys.CAMERA_HEIGHT] ?: SafeGapSettings.DEFAULT_CAMERA_HEIGHT_M).coerceIn(0.5f, 2.5f),
+            focalLengthMm = (prefs[Keys.FOCAL_LENGTH] ?: SafeGapSettings.DEFAULT_FOCAL_LENGTH_MM).coerceIn(1.5f, 8.0f),
+            sensorHeightMm = (prefs[Keys.SENSOR_HEIGHT] ?: SafeGapSettings.DEFAULT_SENSOR_HEIGHT_MM).coerceIn(2.0f, 7.0f),
+            smoothingWindowSize = (prefs[Keys.SMOOTHING_WINDOW] ?: SafeGapSettings.DEFAULT_SMOOTHING_WINDOW).coerceIn(1, 10),
         )
     }
 

@@ -12,7 +12,7 @@ on:
         default: '0.1.0'
 
 env:
-  KEY_ALIAS: safegap-release
+  KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
   KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
   STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 

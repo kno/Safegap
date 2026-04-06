@@ -21,10 +21,12 @@ import com.safegap.core.HudRepository
 import com.safegap.core.SettingsRepository
 import com.safegap.detection.DetectionPipeline
 import com.safegap.detection.ObjectDetector
+import com.safegap.detection.tracking.IoUTracker
 import com.safegap.estimation.CameraIntrinsics
 import com.safegap.estimation.DistanceEstimator
 import com.safegap.estimation.SpeedTracker
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -37,6 +39,7 @@ class DrivingService : LifecycleService() {
 
     @Inject lateinit var objectDetector: ObjectDetector
     @Inject lateinit var detectionPipeline: DetectionPipeline
+    @Inject lateinit var ioUTracker: IoUTracker
     @Inject lateinit var frameProducer: FrameProducer
     @Inject lateinit var distanceEstimator: DistanceEstimator
     @Inject lateinit var speedTracker: SpeedTracker
@@ -46,6 +49,7 @@ class DrivingService : LifecycleService() {
     @Inject lateinit var hudRepository: HudRepository
     @Inject lateinit var settingsRepository: SettingsRepository
 
+    @Volatile
     private var thermalThrottled = false
     private var frameCount = 0
     private var fpsWindowStartMs = 0L
@@ -81,6 +85,8 @@ class DrivingService : LifecycleService() {
     override fun onDestroy() {
         objectDetector.close()
         audioAlertPlayer.release()
+        ioUTracker.reset()
+        speedTracker.reset()
         displayStateManager.reset()
         hudRepository.reset()
         super.onDestroy()
@@ -117,11 +123,13 @@ class DrivingService : LifecycleService() {
     }
 
     private fun startPipeline() {
-        lifecycleScope.launch {
-            objectDetector.initialize()
-        }
-
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.Default) {
+            try {
+                objectDetector.initialize()
+            } catch (e: Exception) {
+                Log.e(TAG, "Detector initialization failed", e)
+                return@launch
+            }
             detectionPipeline.process(frameProducer.frames).collect { result ->
                 // FPS tracking
                 updateFps()

@@ -42,8 +42,6 @@ dependencies {
 
     // TFLite
     implementation(libs.tflite.task.vision)
-    implementation(libs.tflite.gpu.delegate.plugin)
-    implementation(libs.tflite.gpu)
 
     // Hilt
     implementation(libs.hilt.android)

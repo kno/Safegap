@@ -1,7 +1,6 @@
 package com.safegap.camera
 
 import android.graphics.Bitmap
-import androidx.camera.core.ImageProxy
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -25,12 +24,15 @@ class FrameProducer @Inject constructor() {
     )
     val frames: SharedFlow<CameraFrame> = _frames.asSharedFlow()
 
-    suspend fun emit(imageProxy: ImageProxy) {
-        val bitmap = imageProxy.toBitmap()
+    /**
+     * Emit a pre-built frame. The caller is responsible for extracting the bitmap
+     * and closing the ImageProxy before calling this method.
+     */
+    suspend fun emit(bitmap: Bitmap, timestampMs: Long, rotationDegrees: Int) {
         val frame = CameraFrame(
             bitmap = bitmap,
-            timestampMs = imageProxy.imageInfo.timestamp / 1_000_000,
-            rotationDegrees = imageProxy.imageInfo.rotationDegrees,
+            timestampMs = timestampMs,
+            rotationDegrees = rotationDegrees,
         )
         _frames.emit(frame)
     }

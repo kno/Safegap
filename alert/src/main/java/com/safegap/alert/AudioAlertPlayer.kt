@@ -1,7 +1,6 @@
 package com.safegap.alert
 
 import android.content.Context
-import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.util.Log
@@ -17,7 +16,7 @@ import javax.inject.Singleton
  * - CRITICAL: rapid double beep
  * - SAFE: silence
  *
- * Uses STREAM_NOTIFICATION to coexist with navigation/music audio.
+ * Uses STREAM_ALARM to bypass Do Not Disturb for safety-critical alerts.
  */
 @Singleton
 class AudioAlertPlayer @Inject constructor(
@@ -30,11 +29,12 @@ class AudioAlertPlayer @Inject constructor(
     }
 
     private var toneGenerator: ToneGenerator? = null
+    @Volatile
     private var lastPlayedMs = 0L
 
     fun initialize() {
         try {
-            toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
+            toneGenerator = ToneGenerator(AudioManager.STREAM_ALARM, 90)
             Log.i(TAG, "AudioAlertPlayer initialized")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize ToneGenerator", e)

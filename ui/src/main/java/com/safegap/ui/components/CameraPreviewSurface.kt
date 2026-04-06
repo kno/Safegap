@@ -16,10 +16,9 @@ fun CameraPreviewSurface(
             PreviewView(context).apply {
                 implementationMode = PreviewView.ImplementationMode.PERFORMANCE
                 scaleType = PreviewView.ScaleType.FILL_CENTER
+                onPreviewViewReady(this)
             }
         },
-        update = { previewView ->
-            onPreviewViewReady(previewView)
-        },
+        update = {},
     )
 }

@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
     lateinit var cameraManager: CameraManager
 
     private var previewBound = false
+    private var savedPreviewView: PreviewView? = null
     private var showSettings by mutableStateOf(false)
 
     private val cameraPermissionLauncher = registerForActivityResult(
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     HudScreen(
                         onPreviewViewReady = { previewView ->
+                            savedPreviewView = previewView
                             bindCamera(previewView)
                         },
                         onSettingsClick = { showSettings = true },
@@ -74,6 +76,7 @@ class MainActivity : ComponentActivity() {
             == PackageManager.PERMISSION_GRANTED
         ) {
             startDrivingService()
+            savedPreviewView?.let { bindCamera(it) }
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
@@ -87,7 +90,23 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         cameraManager.stop()
         previewBound = false
+        // Service intentionally NOT stopped here — it must survive
+        // phone calls, screen locks, and brief app switches during driving.
+    }
+
+    /**
+     * Explicitly stops the driving session and foreground service.
+     * Call from UI (e.g., stop button) or when the activity is finishing.
+     */
+    fun stopDrivingSession() {
         stopService(Intent(this, DrivingService::class.java))
+    }
+
+    override fun onDestroy() {
+        if (isFinishing) {
+            stopDrivingSession()
+        }
+        super.onDestroy()
     }
 
     private fun bindCamera(previewView: PreviewView) {

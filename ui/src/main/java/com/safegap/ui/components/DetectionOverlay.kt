@@ -4,8 +4,10 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import com.safegap.core.DisplayState
 import com.safegap.core.model.AlertLevel
 import com.safegap.ui.theme.CriticalRed
@@ -25,31 +27,39 @@ fun DetectionOverlay(
     threatTrackId: Int? = null,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(modifier = modifier) {
-        val canvasWidth = size.width
-        val canvasHeight = size.height
-
-        val boxPaint = Paint().apply {
+    val boxPaint = remember {
+        Paint().apply {
             style = Paint.Style.STROKE
             strokeWidth = 3f
             isAntiAlias = true
         }
+    }
 
-        val threatBoxPaint = Paint().apply {
+    val threatBoxPaint = remember {
+        Paint().apply {
             style = Paint.Style.STROKE
             strokeWidth = 6f
             isAntiAlias = true
         }
+    }
 
-        val textPaint = Paint().apply {
+    val textPaint = remember {
+        Paint().apply {
             textSize = 36f
             typeface = Typeface.DEFAULT_BOLD
             isAntiAlias = true
         }
+    }
 
-        val bgPaint = Paint().apply {
+    val bgPaint = remember {
+        Paint().apply {
             style = Paint.Style.FILL
         }
+    }
+
+    Canvas(modifier = modifier) {
+        val canvasWidth = size.width
+        val canvasHeight = size.height
 
         for (ds in displayStates) {
             val left = ds.smoothedBox.left * canvasWidth
@@ -69,7 +79,7 @@ fun DetectionOverlay(
                 dist != null && dist < 15f -> WarningAmber
                 else -> SafeGreen
             }
-            val androidColor = color.hashCode()
+            val androidColor = color.toArgb()
 
             val currentBoxPaint = if (isThreat) threatBoxPaint else boxPaint
             currentBoxPaint.color = androidColor
