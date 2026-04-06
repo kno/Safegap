@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.task.core.BaseOptions
 import org.tensorflow.lite.task.vision.detector.ObjectDetector as TfLiteObjectDetector
@@ -27,6 +28,9 @@ class ObjectDetector @Inject constructor(
     private var _ready = CompletableDeferred<Unit>()
 
     private var detector: TfLiteObjectDetector? = null
+
+    /** Pre-allocated TensorImage to avoid per-frame allocation via fromBitmap(). */
+    private val tensorImage = TensorImage(DataType.UINT8)
 
     /**
      * Initialize the TFLite interpreter. Call once from a background thread
@@ -87,7 +91,7 @@ class ObjectDetector @Inject constructor(
         }
         val det = detector ?: return emptyList()
 
-        val tensorImage = TensorImage.fromBitmap(bitmap)
+        tensorImage.load(bitmap) // reuses internal buffer
         val results = det.detect(tensorImage)
 
         val imageWidth = bitmap.width.toFloat()

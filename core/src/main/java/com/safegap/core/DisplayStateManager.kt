@@ -97,8 +97,10 @@ class DisplayStateManager @Inject constructor() {
         var missedFrames = 0
         var lastSpeedMps: Float = initial.speedMps ?: 0f
 
-        // History for median distance
-        val distanceHistory = ArrayDeque<Float>(HISTORY_SIZE)
+        // Ring buffer for median distance (avoids boxing and per-frame allocation)
+        val distanceHistory = FloatArray(HISTORY_SIZE)
+        var historyCount = 0
+        var historyIndex = 0
 
         init {
             initial.distanceMeters?.let { addToHistory(it) }
@@ -181,7 +183,12 @@ class DisplayStateManager @Inject constructor() {
             return DisplayState(
                 trackId = trackId,
                 className = className,
-                smoothedBox = RectF(smoothBox),
+                smoothedBox = NormalizedRect(
+                    left = smoothBox.left,
+                    top = smoothBox.top,
+                    right = smoothBox.right,
+                    bottom = smoothBox.bottom,
+                ),
                 displayDistanceM = smoothDistance,
                 displaySpeedMps = smoothSpeed,
                 ttcSeconds = latestTtc,
@@ -190,20 +197,16 @@ class DisplayStateManager @Inject constructor() {
         }
 
         private fun addToHistory(value: Float) {
-            distanceHistory.addLast(value)
-            if (distanceHistory.size > HISTORY_SIZE) {
-                distanceHistory.removeFirst()
-            }
+            distanceHistory[historyIndex] = value
+            historyIndex = (historyIndex + 1) % HISTORY_SIZE
+            if (historyCount < HISTORY_SIZE) historyCount++
         }
 
         private fun medianDistance(): Float {
-            val sorted = distanceHistory.sorted()
-            val n = sorted.size
-            return if (n % 2 == 0) {
-                (sorted[n / 2 - 1] + sorted[n / 2]) / 2f
-            } else {
-                sorted[n / 2]
-            }
+            val arr = distanceHistory.copyOf(historyCount)
+            arr.sort()
+            val n = arr.size
+            return if (n % 2 == 0) (arr[n / 2 - 1] + arr[n / 2]) / 2f else arr[n / 2]
         }
 
         private fun ema(old: Float, new: Float, alpha: Float): Float =

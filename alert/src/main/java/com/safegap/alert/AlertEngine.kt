@@ -66,7 +66,7 @@ class AlertEngine @Inject constructor() {
 
         for (obj in objects) {
             val objLevel = classifyObject(obj)
-            if (objLevel > worstLevel) {
+            if (objLevel.severity > worstLevel.severity) {
                 worstLevel = objLevel
                 closestThreat = obj
             } else if (objLevel == worstLevel && closestThreat != null) {
@@ -117,9 +117,10 @@ class AlertEngine @Inject constructor() {
     private fun debounce(rawLevel: AlertLevel, now: Long): AlertLevel {
 
         if (rawLevel == currentLevel) {
-            // Already at this level, reset pending
+            // Stable at current level — don't touch pending state.
+            // Resetting pendingSinceMs here would allow a brief bounce-back
+            // followed by a return to restart the timer, enabling early escalation.
             pendingLevel = rawLevel
-            pendingSinceMs = now
             return currentLevel
         }
 

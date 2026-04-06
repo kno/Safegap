@@ -17,6 +17,9 @@ data class CameraFrame(
 @Singleton
 class FrameProducer @Inject constructor() {
 
+    /** Pre-allocated bitmap pool to avoid per-frame allocation. */
+    val bitmapPool = BitmapPool(width = 640, height = 480, poolSize = 3)
+
     private val _frames = MutableSharedFlow<CameraFrame>(
         replay = 0,
         extraBufferCapacity = 1,

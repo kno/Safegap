@@ -7,6 +7,7 @@ import com.safegap.core.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -51,7 +52,8 @@ class SettingsViewModel @Inject constructor(
 
     private fun updateAlert(transform: (SafeGapSettings) -> SafeGapSettings) {
         viewModelScope.launch {
-            val updated = transform(settings.value)
+            val current = settingsRepository.settings.first()
+            val updated = transform(current)
             settingsRepository.updateAlertThresholds(
                 criticalTtcS = updated.criticalTtcS,
                 criticalDistanceM = updated.criticalDistanceM,
@@ -63,7 +65,8 @@ class SettingsViewModel @Inject constructor(
 
     private fun updateCamera(transform: (SafeGapSettings) -> SafeGapSettings) {
         viewModelScope.launch {
-            val updated = transform(settings.value)
+            val current = settingsRepository.settings.first()
+            val updated = transform(current)
             settingsRepository.updateCameraParams(
                 cameraHeightM = updated.cameraHeightM,
                 focalLengthMm = updated.focalLengthMm,
