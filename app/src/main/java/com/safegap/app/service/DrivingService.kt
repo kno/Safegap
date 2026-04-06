@@ -26,6 +26,7 @@ import com.safegap.estimation.CameraIntrinsics
 import com.safegap.estimation.DistanceEstimator
 import com.safegap.estimation.SpeedTracker
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -122,7 +123,7 @@ class DrivingService : LifecycleService() {
     }
 
     private fun startPipeline() {
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.Default) {
             try {
                 objectDetector.initialize()
             } catch (e: Exception) {

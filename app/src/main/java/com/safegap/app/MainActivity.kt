@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
     lateinit var cameraManager: CameraManager
 
     private var previewBound = false
+    private var savedPreviewView: PreviewView? = null
     private var showSettings by mutableStateOf(false)
 
     private val cameraPermissionLauncher = registerForActivityResult(
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     HudScreen(
                         onPreviewViewReady = { previewView ->
+                            savedPreviewView = previewView
                             bindCamera(previewView)
                         },
                         onSettingsClick = { showSettings = true },
@@ -74,6 +76,7 @@ class MainActivity : ComponentActivity() {
             == PackageManager.PERMISSION_GRANTED
         ) {
             startDrivingService()
+            savedPreviewView?.let { bindCamera(it) }
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }

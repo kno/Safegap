@@ -115,6 +115,8 @@ class CameraManager @Inject constructor(
         scope.coroutineContext.cancelChildren()
         cameraProvider?.unbindAll()
         camera = null
+        lifecycleOwner = null
+        previewView = null
         Log.i(TAG, "Camera stopped")
     }
 
@@ -134,12 +136,12 @@ class CameraManager @Inject constructor(
             .build()
             .also { analysis ->
                 analysis.setAnalyzer(analysisExecutor) { imageProxy ->
+                    val bitmap = imageProxy.toBitmap()
+                    val timestamp = imageProxy.imageInfo.timestamp / 1_000_000
+                    val rotation = imageProxy.imageInfo.rotationDegrees
+                    imageProxy.close() // release buffer immediately on analyzer thread
                     scope.launch {
-                        try {
-                            frameProducer.emit(imageProxy)
-                        } finally {
-                            imageProxy.close()
-                        }
+                        frameProducer.emit(bitmap, timestamp, rotation)
                     }
                 }
             }

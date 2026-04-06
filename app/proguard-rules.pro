@@ -21,8 +21,10 @@
 -keep class com.safegap.core.model.** { *; }
 -keep class com.safegap.detection.DetectorConfig { *; }
 
-# Strip debug and verbose logging in release builds
+# Strip debug, verbose, info, and warning logging in release builds
 -assumenosideeffects class android.util.Log {
     public static int d(...);
     public static int v(...);
+    public static int i(...);
+    public static int w(...);
 }

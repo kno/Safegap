@@ -23,6 +23,7 @@ class ObjectDetector @Inject constructor(
         private const val TAG = "SafeGap.Detector"
     }
 
+    @Volatile
     private var _ready = CompletableDeferred<Unit>()
 
     private var detector: TfLiteObjectDetector? = null
@@ -80,7 +81,11 @@ class ObjectDetector @Inject constructor(
      * Returns only detections for [DetectorConfig.RELEVANT_CLASSES].
      */
     fun detect(bitmap: Bitmap, timestampMs: Long): List<RawDetection> {
-        val det = detector ?: throw IllegalStateException("ObjectDetector not initialized")
+        if (!_ready.isCompleted) {
+            Log.w(TAG, "Detector not ready, skipping frame")
+            return emptyList()
+        }
+        val det = detector ?: return emptyList()
 
         val tensorImage = TensorImage.fromBitmap(bitmap)
         val results = det.detect(tensorImage)
