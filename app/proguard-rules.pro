@@ -14,8 +14,8 @@
     *;
 }
 
-# Keep Compose runtime
--keep class androidx.compose.** { *; }
+# Compose runtime (AARs ship their own rules, this is a safety net)
+-keep class androidx.compose.runtime.** { *; }
 
 # Keep model classes used by detection pipeline
 -keep class com.safegap.core.model.** { *; }

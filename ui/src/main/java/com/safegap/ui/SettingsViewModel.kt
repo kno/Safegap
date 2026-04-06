@@ -20,11 +20,15 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SafeGapSettings())
 
     fun updateCriticalTtc(value: Float) = updateAlert {
-        it.copy(criticalTtcS = value.coerceAtMost(it.warningTtcS - 0.5f))
+        it.copy(criticalTtcS = value
+            .coerceAtLeast(0.5f)
+            .coerceAtMost(it.warningTtcS - 0.5f))
     }
 
     fun updateCriticalDistance(value: Float) = updateAlert {
-        it.copy(criticalDistanceM = value.coerceAtMost(it.warningDistanceM - 1f))
+        it.copy(criticalDistanceM = value
+            .coerceAtLeast(1f)
+            .coerceAtMost(it.warningDistanceM - 1f))
     }
 
     fun updateWarningTtc(value: Float) = updateAlert {

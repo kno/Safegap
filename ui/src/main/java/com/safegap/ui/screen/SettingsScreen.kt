@@ -52,7 +52,7 @@ fun SettingsScreen(
         SettingSlider(
             label = "TTC critico",
             value = settings.criticalTtcS,
-            range = 0.5f..(settings.warningTtcS - 0.5f).coerceAtLeast(0.5f),
+            range = 0.5f..(settings.warningTtcS - 0.5f).coerceAtLeast(1.0f),
             unit = "s",
             onValueChange = { viewModel.updateCriticalTtc(it) },
         )
@@ -60,7 +60,7 @@ fun SettingsScreen(
         SettingSlider(
             label = "Distancia critica",
             value = settings.criticalDistanceM,
-            range = 1f..(settings.warningDistanceM - 1f).coerceAtLeast(1f),
+            range = 1f..(settings.warningDistanceM - 1f).coerceAtLeast(2f),
             unit = "m",
             onValueChange = { viewModel.updateCriticalDistance(it) },
         )
