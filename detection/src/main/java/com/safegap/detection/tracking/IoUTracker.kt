@@ -3,6 +3,7 @@ package com.safegap.detection.tracking
 import android.graphics.RectF
 import com.safegap.core.model.RawDetection
 import com.safegap.core.model.TrackedObject
+import java.util.IdentityHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,6 +13,7 @@ class IoUTracker @Inject constructor() {
     companion object {
         private const val IOU_THRESHOLD = 0.3f
         private const val GRACE_PERIOD_FRAMES = 5
+        private const val MAX_ACTIVE_TRACKS = 30
     }
 
     private var nextTrackId = 1
@@ -28,6 +30,12 @@ class IoUTracker @Inject constructor() {
         val matchedTrackIds = mutableSetOf<Int>()
 
         val flatDetections = detections.toList()
+
+        // Pre-build identity map: detection -> index (avoids O(n) indexOf lookups)
+        val detectionIndexMap = IdentityHashMap<RawDetection, Int>(flatDetections.size)
+        for ((index, det) in flatDetections.withIndex()) {
+            detectionIndexMap[det] = index
+        }
 
         // For each class, compute IoU between existing tracks and new detections
         for ((className, classDetections) in detectionsByClass) {
@@ -59,7 +67,7 @@ class IoUTracker @Inject constructor() {
                 usedDetections.add(det)
                 usedTracks.add(track.trackId)
                 matchedTrackIds.add(track.trackId)
-                matched.add(flatDetections.indexOf(det))
+                matched.add(detectionIndexMap[det]!!)
             }
         }
 
@@ -81,6 +89,14 @@ class IoUTracker @Inject constructor() {
                     detection = det,
                     missedFrames = 0,
                 ))
+            }
+        }
+
+        // Cap active tracks to prevent unbounded growth
+        if (activeTracks.size > MAX_ACTIVE_TRACKS) {
+            activeTracks.sortByDescending { it.missedFrames }
+            while (activeTracks.size > MAX_ACTIVE_TRACKS) {
+                activeTracks.removeLast()
             }
         }
 

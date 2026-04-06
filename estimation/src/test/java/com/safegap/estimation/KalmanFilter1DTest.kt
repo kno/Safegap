@@ -88,4 +88,95 @@ class KalmanFilter1DTest {
 
         assertEquals(20f, filter.distance, 1.0f)
     }
+
+    // --- Edge case: duplicate timestamp (dt <= 0) ---
+
+    @Test
+    fun `duplicate timestamp does not corrupt state`() {
+        val filter = KalmanFilter1D(initialDistance = 10f)
+
+        filter.update(10f, 100L)
+        val distBefore = filter.distance
+        val velBefore = filter.velocity
+
+        // Same timestamp → dt = 0, should return current state unchanged
+        val result = filter.update(10f, 100L)
+
+        assertEquals(distBefore, result, 0.001f)
+        assertEquals(distBefore, filter.distance, 0.001f)
+        assertEquals(velBefore, filter.velocity, 0.001f)
+    }
+
+    @Test
+    fun `earlier timestamp does not corrupt state`() {
+        val filter = KalmanFilter1D(initialDistance = 10f)
+
+        filter.update(10f, 200L)
+        val distBefore = filter.distance
+        val velBefore = filter.velocity
+
+        // Earlier timestamp → dt < 0, should return current state unchanged
+        val result = filter.update(10f, 100L)
+
+        assertEquals(distBefore, result, 0.001f)
+        assertEquals(velBefore, filter.velocity, 0.001f)
+    }
+
+    // --- Edge case: negative distance ---
+
+    @Test
+    fun `negative distance measurement is handled gracefully`() {
+        val filter = KalmanFilter1D(initialDistance = 5f)
+
+        filter.update(5f, 100L)
+        filter.update(-2f, 200L) // physically impossible, but should not crash
+
+        // Filter should still have a finite, non-NaN distance
+        assertTrue(
+            "Distance should be finite: ${filter.distance}",
+            filter.distance.isFinite(),
+        )
+    }
+
+    // --- Edge case: cold-start with large dt gap ---
+
+    @Test
+    fun `cold-start with 500ms gap does not produce wild velocity`() {
+        val filter = KalmanFilter1D(initialDistance = 20f)
+
+        // First update establishes baseline
+        filter.update(20f, 0L)
+
+        // Second update with 500ms gap (large for a tracker at 15fps)
+        filter.update(19f, 500L)
+
+        // Velocity should be reasonable — object moved 1m in 0.5s = ~2 m/s
+        // Should not produce a wildly large velocity
+        assertTrue(
+            "Velocity should be reasonable after cold-start gap: ${filter.velocity}",
+            kotlin.math.abs(filter.velocity) < 10f,
+        )
+    }
+
+    @Test
+    fun `filter remains stable through large dt then normal dt`() {
+        val filter = KalmanFilter1D(initialDistance = 30f)
+
+        filter.update(30f, 0L)
+        filter.update(29f, 500L) // 500ms gap
+
+        // Now resume normal 66ms intervals
+        var t = 500L
+        repeat(10) {
+            t += 66
+            filter.update(28f, t)
+        }
+
+        // Should converge toward 28
+        assertEquals(28f, filter.distance, 1.5f)
+        assertTrue(
+            "Velocity should be finite: ${filter.velocity}",
+            filter.velocity.isFinite(),
+        )
+    }
 }
