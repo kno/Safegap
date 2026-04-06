@@ -66,8 +66,7 @@ class MainActivity : ComponentActivity() {
                             bindCamera(previewView)
                         },
                         onSettingsClick = {
-                            cameraManager.stop()
-                            previewBound = false
+                            teardownCamera()
                             showSettings = true
                         },
                         isDebug = BuildConfig.DEBUG,
@@ -96,8 +95,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        cameraManager.stop()
-        previewBound = false
+        teardownCamera()
         // Service intentionally NOT stopped here — it must survive
         // phone calls, screen locks, and brief app switches during driving.
     }
@@ -115,6 +113,11 @@ class MainActivity : ComponentActivity() {
             stopDrivingSession()
         }
         super.onDestroy()
+    }
+
+    private fun teardownCamera() {
+        cameraManager.stop()
+        previewBound = false
     }
 
     private fun bindCamera(previewView: PreviewView) {
