@@ -7,14 +7,14 @@ Android app for car mounting that uses the camera to detect objects, estimate di
 ## Build & Run
 
 ```bash
-# Build (requires JDK 17+)
-JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ./gradlew assembleDebug
+# Build (requires JDK 17+; foojay-resolver auto-provisions the toolchain JDK)
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home ./gradlew assembleDebug
 
 # Install on connected device
-JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ./gradlew installDebug
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home ./gradlew installDebug
 
 # Run tests
-JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ./gradlew test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home ./gradlew test
 ```
 
 ## Stack
