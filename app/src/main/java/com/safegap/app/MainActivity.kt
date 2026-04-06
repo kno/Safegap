@@ -65,7 +65,11 @@ class MainActivity : ComponentActivity() {
                             savedPreviewView = previewView
                             bindCamera(previewView)
                         },
-                        onSettingsClick = { showSettings = true },
+                        onSettingsClick = {
+                            cameraManager.stop()
+                            previewBound = false
+                            showSettings = true
+                        },
                         isDebug = BuildConfig.DEBUG,
                     )
                 }
