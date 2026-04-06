@@ -69,3 +69,6 @@ node_modules/
 .env
 *.env
 credentials.json
+
+# OMC
+.omc/
