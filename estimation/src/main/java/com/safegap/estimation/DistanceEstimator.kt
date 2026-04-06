@@ -22,6 +22,7 @@ class DistanceEstimator @Inject constructor() {
         private const val MIN_CONFIDENCE = 0.55f
     }
 
+    @Volatile
     private var intrinsics = CameraIntrinsics()
 
     fun updateIntrinsics(intrinsics: CameraIntrinsics) {

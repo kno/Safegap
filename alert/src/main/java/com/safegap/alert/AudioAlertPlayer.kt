@@ -30,6 +30,7 @@ class AudioAlertPlayer @Inject constructor(
     }
 
     private var toneGenerator: ToneGenerator? = null
+    @Volatile
     private var lastPlayedMs = 0L
 
     fun initialize() {

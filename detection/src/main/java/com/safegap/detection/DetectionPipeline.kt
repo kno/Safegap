@@ -4,6 +4,7 @@ import android.util.Log
 import com.safegap.camera.CameraFrame
 import com.safegap.core.model.TrackedObject
 import com.safegap.detection.tracking.IoUTracker
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
@@ -49,6 +50,8 @@ class DetectionPipeline @Inject constructor(
                 )
 
                 emit(PipelineResult(tracked, frame.bitmap.height))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing frame", e)
             }
