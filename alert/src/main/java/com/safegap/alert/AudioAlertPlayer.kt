@@ -26,18 +26,35 @@ class AudioAlertPlayer @Inject constructor(
         private const val TAG = "SafeGap.Audio"
         private const val TONE_DURATION_MS = 150
         private const val MIN_INTERVAL_MS = 800L
+        private const val DEFAULT_VOLUME = 90
     }
 
     private var toneGenerator: ToneGenerator? = null
+    private var currentVolume: Int = DEFAULT_VOLUME
     @Volatile
     private var lastPlayedMs = 0L
 
     fun initialize() {
         try {
-            toneGenerator = ToneGenerator(AudioManager.STREAM_ALARM, 90)
-            Log.i(TAG, "AudioAlertPlayer initialized")
+            toneGenerator = ToneGenerator(AudioManager.STREAM_ALARM, currentVolume)
+            Log.i(TAG, "AudioAlertPlayer initialized (volume=$currentVolume)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize ToneGenerator", e)
+        }
+    }
+
+    /**
+     * Update the alert volume. Recreates the ToneGenerator with the new volume.
+     * @param volume Volume level in range [0, 100].
+     */
+    fun updateVolume(volume: Int) {
+        currentVolume = volume.coerceIn(0, 100)
+        try {
+            toneGenerator?.release()
+            toneGenerator = ToneGenerator(AudioManager.STREAM_ALARM, currentVolume)
+            Log.d(TAG, "Volume updated to $currentVolume")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to recreate ToneGenerator with volume $currentVolume", e)
         }
     }
 

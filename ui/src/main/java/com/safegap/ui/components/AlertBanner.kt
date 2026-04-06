@@ -29,6 +29,27 @@ import com.safegap.ui.theme.CriticalRed
 import com.safegap.ui.theme.SafeGreen
 import com.safegap.ui.theme.WarningAmber
 
+/** English COCO labels to Spanish translations for TalkBack accessibility. */
+private val cocoLabelEs = mapOf(
+    "car" to "Coche",
+    "truck" to "Cami\u00f3n",
+    "bus" to "Autob\u00fas",
+    "person" to "Persona",
+    "bicycle" to "Bicicleta",
+    "motorcycle" to "Moto",
+    "dog" to "Perro",
+    "cat" to "Gato",
+    "traffic light" to "Sem\u00e1foro",
+    "stop sign" to "Se\u00f1al de stop",
+)
+
+/**
+ * Translate an English COCO class name to Spanish for display.
+ * Falls back to uppercased original if no translation exists.
+ */
+internal fun translateCocoLabel(englishLabel: String): String =
+    cocoLabelEs[englishLabel.lowercase()] ?: englishLabel.uppercase()
+
 /**
  * Color-coded banner at the top of the HUD.
  * Shows minimal text: alert status + closest object info.
@@ -80,7 +101,7 @@ fun AlertBanner(
 private fun buildAlertText(level: AlertLevel, threat: TrackedObject?): String {
     if (threat == null) return ""
 
-    val className = threat.detection.className.uppercase()
+    val className = translateCocoLabel(threat.detection.className)
     val distance = threat.distanceMeters?.let { "%.0f".format(it) + "m" } ?: ""
 
     return when (level) {

@@ -18,7 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class ObjectDetector @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : ObjectDetectorApi {
     companion object {
         private const val TAG = "SafeGap.Detector"
     }
@@ -73,13 +73,13 @@ class ObjectDetector @Inject constructor(
     }
 
     /** Block until the detector is ready. */
-    suspend fun awaitReady() = _ready.await()
+    override suspend fun awaitReady() = _ready.await()
 
     /**
      * Run inference on a single frame.
      * Returns only detections for [DetectorConfig.RELEVANT_CLASSES].
      */
-    fun detect(bitmap: Bitmap, timestampMs: Long): List<RawDetection> {
+    override fun detect(bitmap: Bitmap, timestampMs: Long): List<RawDetection> {
         val det = detector ?: throw IllegalStateException("ObjectDetector not initialized")
 
         val tensorImage = TensorImage.fromBitmap(bitmap)

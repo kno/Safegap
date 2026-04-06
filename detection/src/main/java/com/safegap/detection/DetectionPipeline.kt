@@ -5,11 +5,13 @@ import com.safegap.camera.CameraFrame
 import com.safegap.core.model.TrackedObject
 import com.safegap.detection.tracking.IoUTracker
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import java.io.Closeable
+import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,16 +22,24 @@ data class PipelineResult(
 
 @Singleton
 class DetectionPipeline @Inject constructor(
-    private val objectDetector: ObjectDetector,
+    private val objectDetector: ObjectDetectorApi,
     private val ioUTracker: IoUTracker,
-) {
+) : Closeable {
     companion object {
         private const val TAG = "SafeGap.Pipeline"
+        private const val FRAME_BUDGET_MS = 66L
+        private const val OVERBUDGET_THRESHOLD = 10
     }
+
+    private val pipelineDispatcher = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "safegap-pipeline").apply { isDaemon = true }
+    }.asCoroutineDispatcher()
+
+    private var consecutiveOverBudget = 0
 
     /**
      * Collects frames from [frameFlow], runs detection + tracking,
-     * and emits [PipelineResult] on [Dispatchers.Default].
+     * and emits [PipelineResult] on a dedicated single-thread dispatcher.
      */
     fun process(frameFlow: SharedFlow<CameraFrame>): Flow<PipelineResult> = flow {
         objectDetector.awaitReady()
@@ -49,6 +59,16 @@ class DetectionPipeline @Inject constructor(
                         "${rawDetections.size} detections, ${tracked.size} tracked",
                 )
 
+                // Frame budget monitoring
+                if (elapsed > FRAME_BUDGET_MS) {
+                    consecutiveOverBudget++
+                    if (consecutiveOverBudget > OVERBUDGET_THRESHOLD) {
+                        Log.w(TAG, "Consistently over frame budget: ${elapsed}ms avg")
+                    }
+                } else {
+                    consecutiveOverBudget = 0
+                }
+
                 emit(PipelineResult(tracked, frame.bitmap.height))
             } catch (e: CancellationException) {
                 throw e
@@ -56,5 +76,9 @@ class DetectionPipeline @Inject constructor(
                 Log.e(TAG, "Error processing frame", e)
             }
         }
-    }.flowOn(Dispatchers.Default)
+    }.flowOn(pipelineDispatcher)
+
+    override fun close() {
+        pipelineDispatcher.close()
+    }
 }
