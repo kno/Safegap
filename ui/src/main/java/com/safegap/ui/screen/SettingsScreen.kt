@@ -14,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -78,6 +79,19 @@ fun SettingsScreen(
             range = 5f..40f,
             unit = "m",
             onValueChange = { viewModel.updateWarningDistance(it) },
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // --- Stabilization ---
+        SectionHeader("Estabilizacion")
+
+        IntSettingSlider(
+            label = "Ventana de suavizado",
+            value = settings.smoothingWindowSize,
+            range = 1..10,
+            unit = "muestras",
+            onValueChange = { viewModel.updateSmoothingWindow(it) },
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -158,6 +172,39 @@ private fun SettingSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = range,
+        )
+    }
+}
+
+@Composable
+private fun IntSettingSlider(
+    label: String,
+    value: Int,
+    range: IntRange,
+    unit: String,
+    onValueChange: (Int) -> Unit,
+) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = "$value $unit",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.roundToInt()) },
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+            steps = range.last - range.first - 1,
         )
     }
 }

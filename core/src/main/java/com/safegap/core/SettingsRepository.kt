@@ -5,9 +5,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,6 +31,7 @@ class SettingsRepository @Inject constructor(
         val CAMERA_HEIGHT = floatPreferencesKey("camera_height_m")
         val FOCAL_LENGTH = floatPreferencesKey("focal_length_mm")
         val SENSOR_HEIGHT = floatPreferencesKey("sensor_height_mm")
+        val SMOOTHING_WINDOW = intPreferencesKey("smoothing_window_size")
     }
 
     val settings: Flow<SafeGapSettings> = context.dataStore.data.map { prefs ->
@@ -40,6 +43,7 @@ class SettingsRepository @Inject constructor(
             cameraHeightM = prefs[Keys.CAMERA_HEIGHT] ?: SafeGapSettings.DEFAULT_CAMERA_HEIGHT_M,
             focalLengthMm = prefs[Keys.FOCAL_LENGTH] ?: SafeGapSettings.DEFAULT_FOCAL_LENGTH_MM,
             sensorHeightMm = prefs[Keys.SENSOR_HEIGHT] ?: SafeGapSettings.DEFAULT_SENSOR_HEIGHT_MM,
+            smoothingWindowSize = prefs[Keys.SMOOTHING_WINDOW] ?: SafeGapSettings.DEFAULT_SMOOTHING_WINDOW,
         )
     }
 
@@ -68,6 +72,17 @@ class SettingsRepository @Inject constructor(
             prefs[Keys.SENSOR_HEIGHT] = sensorHeightMm
         }
     }
+
+    suspend fun currentSensorHeightMm(): Float {
+        val prefs = context.dataStore.data.first()
+        return prefs[Keys.SENSOR_HEIGHT] ?: SafeGapSettings.DEFAULT_SENSOR_HEIGHT_MM
+    }
+
+    suspend fun updateSmoothingWindowSize(size: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SMOOTHING_WINDOW] = size.coerceIn(1, 10)
+        }
+    }
 }
 
 data class SafeGapSettings(
@@ -78,6 +93,7 @@ data class SafeGapSettings(
     val cameraHeightM: Float = DEFAULT_CAMERA_HEIGHT_M,
     val focalLengthMm: Float = DEFAULT_FOCAL_LENGTH_MM,
     val sensorHeightMm: Float = DEFAULT_SENSOR_HEIGHT_MM,
+    val smoothingWindowSize: Int = DEFAULT_SMOOTHING_WINDOW,
 ) {
     companion object {
         const val DEFAULT_CRITICAL_TTC_S = 2.0f
@@ -87,5 +103,6 @@ data class SafeGapSettings(
         const val DEFAULT_CAMERA_HEIGHT_M = 1.2f
         const val DEFAULT_FOCAL_LENGTH_MM = 3.6f
         const val DEFAULT_SENSOR_HEIGHT_MM = 4.55f
+        const val DEFAULT_SMOOTHING_WINDOW = 5
     }
 }

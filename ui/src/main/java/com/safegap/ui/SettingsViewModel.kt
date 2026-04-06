@@ -24,6 +24,12 @@ class SettingsViewModel @Inject constructor(
     fun updateWarningTtc(value: Float) = updateAlert { it.copy(warningTtcS = value) }
     fun updateWarningDistance(value: Float) = updateAlert { it.copy(warningDistanceM = value) }
 
+    fun updateSmoothingWindow(value: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateSmoothingWindowSize(value)
+        }
+    }
+
     fun updateCameraHeight(value: Float) = updateCamera { it.copy(cameraHeightM = value) }
     fun updateFocalLength(value: Float) = updateCamera { it.copy(focalLengthMm = value) }
     fun updateSensorHeight(value: Float) = updateCamera { it.copy(sensorHeightMm = value) }

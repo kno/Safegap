@@ -11,14 +11,16 @@ import javax.inject.Singleton
  *
  * Thresholds are configurable via [updateSettings].
  *
- * Debounce: level rises immediately, drops only after [DEBOUNCE_FRAMES]
- * consecutive frames at a lower level.
+ * Debounce: a new alert level must be sustained for [SUSTAIN_MS] milliseconds
+ * before it becomes active. This prevents transient spikes from triggering alerts.
+ * Dropping to a lower level also requires [SUSTAIN_MS] of sustained lower readings.
  */
 @Singleton
 class AlertEngine @Inject constructor() {
 
     companion object {
-        private const val DEBOUNCE_FRAMES = 3
+        /** Alert condition must hold for this duration before firing. */
+        private const val SUSTAIN_MS = 500L
         private const val PERSON_TTC_MULTIPLIER = 2.0f
     }
 
@@ -28,7 +30,10 @@ class AlertEngine @Inject constructor() {
     private var warningDistanceM = SafeGapSettings.DEFAULT_WARNING_DISTANCE_M
 
     private var currentLevel = AlertLevel.SAFE
-    private var lowerFrameCount = 0
+    /** The raw level being sustained, waiting to become active. */
+    private var pendingLevel = AlertLevel.SAFE
+    /** Timestamp (ms) when pendingLevel was first seen continuously. */
+    private var pendingSinceMs = 0L
 
     fun updateSettings(settings: SafeGapSettings) {
         criticalTtcS = settings.criticalTtcS
@@ -40,8 +45,10 @@ class AlertEngine @Inject constructor() {
     /**
      * Evaluate a frame of tracked objects and return the debounced alert level,
      * the most threatening object (if any), and its per-object level.
+     *
+     * @param nowMs current time in milliseconds (injectable for testing).
      */
-    fun evaluate(objects: List<TrackedObject>): AlertResult {
+    fun evaluate(objects: List<TrackedObject>, nowMs: Long = System.currentTimeMillis()): AlertResult {
         var worstLevel = AlertLevel.SAFE
         var closestThreat: TrackedObject? = null
 
@@ -59,7 +66,7 @@ class AlertEngine @Inject constructor() {
             }
         }
 
-        currentLevel = debounce(worstLevel)
+        currentLevel = debounce(worstLevel, nowMs)
 
         return AlertResult(
             level = currentLevel,
@@ -69,7 +76,8 @@ class AlertEngine @Inject constructor() {
 
     fun reset() {
         currentLevel = AlertLevel.SAFE
-        lowerFrameCount = 0
+        pendingLevel = AlertLevel.SAFE
+        pendingSinceMs = 0L
     }
 
     private fun classifyObject(obj: TrackedObject): AlertLevel {
@@ -91,15 +99,25 @@ class AlertEngine @Inject constructor() {
         return AlertLevel.SAFE
     }
 
-    private fun debounce(rawLevel: AlertLevel): AlertLevel {
-        if (rawLevel >= currentLevel) {
-            lowerFrameCount = 0
-            return rawLevel
+    private fun debounce(rawLevel: AlertLevel, now: Long): AlertLevel {
+
+        if (rawLevel == currentLevel) {
+            // Already at this level, reset pending
+            pendingLevel = rawLevel
+            pendingSinceMs = now
+            return currentLevel
         }
 
-        lowerFrameCount++
-        return if (lowerFrameCount >= DEBOUNCE_FRAMES) {
-            lowerFrameCount = 0
+        if (rawLevel != pendingLevel) {
+            // New candidate level — start timing
+            pendingLevel = rawLevel
+            pendingSinceMs = now
+            return currentLevel
+        }
+
+        // Same pending level — check if sustained long enough
+        return if (now - pendingSinceMs >= SUSTAIN_MS) {
+            pendingSinceMs = now
             rawLevel
         } else {
             currentLevel

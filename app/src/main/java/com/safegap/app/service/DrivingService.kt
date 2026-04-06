@@ -91,6 +91,7 @@ class DrivingService : LifecycleService() {
         lifecycleScope.launch {
             settingsRepository.settings.collect { settings ->
                 alertEngine.updateSettings(settings)
+                speedTracker.updateWindowSize(settings.smoothingWindowSize)
                 distanceEstimator.updateIntrinsics(
                     CameraIntrinsics(
                         focalLengthMm = settings.focalLengthMm,

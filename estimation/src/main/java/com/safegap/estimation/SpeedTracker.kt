@@ -12,11 +12,14 @@ import javax.inject.Singleton
 @Singleton
 class SpeedTracker @Inject constructor() {
 
-    companion object {
-        private const val WINDOW_SIZE = 5
-    }
+    private var windowSize = 5
 
     private val tracks = mutableMapOf<Int, TrackState>()
+
+    /** Update the sliding window size (1–10). Takes effect on next sample. */
+    fun updateWindowSize(size: Int) {
+        windowSize = size.coerceIn(1, 10)
+    }
 
     /**
      * Update with a new raw distance measurement for a tracked object.
@@ -26,13 +29,13 @@ class SpeedTracker @Inject constructor() {
         val state = tracks.getOrPut(trackId) {
             TrackState(
                 kalman = KalmanFilter1D(rawDistance),
-                samples = ArrayDeque(WINDOW_SIZE),
+                samples = ArrayDeque(windowSize),
             )
         }
 
         val filteredDistance = state.kalman.update(rawDistance, timestampMs)
         state.samples.addLast(DistanceSample(filteredDistance, timestampMs))
-        if (state.samples.size > WINDOW_SIZE) {
+        while (state.samples.size > windowSize) {
             state.samples.removeFirst()
         }
 
