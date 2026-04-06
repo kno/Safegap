@@ -49,6 +49,8 @@ class DrivingService : LifecycleService() {
     @Inject lateinit var hudRepository: HudRepository
     @Inject lateinit var settingsRepository: SettingsRepository
 
+    private var wakeLock: PowerManager.WakeLock? = null
+
     @Volatile
     private var thermalThrottled = false
     private var frameCount = 0
@@ -57,6 +59,10 @@ class DrivingService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        wakeLock = getSystemService(PowerManager::class.java)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SafeGap:DrivingWakeLock")
+            .apply { acquire() }
+
         createNotificationChannel()
 
         val notification = buildNotification()
@@ -83,6 +89,8 @@ class DrivingService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        wakeLock?.release()
+        wakeLock = null
         objectDetector.close()
         audioAlertPlayer.release()
         ioUTracker.reset()

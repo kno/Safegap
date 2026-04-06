@@ -172,6 +172,32 @@ class AlertEngineTest {
     }
 
     @Test
+    fun `debounce does not allow early escalation after bounce back`() {
+        val t0 = 1000L
+
+        // Start at SAFE
+        engine.evaluate(listOf(obj(distance = 50f)), nowMs = t0)
+
+        // Send WARNING for 400ms (under SUSTAIN_MS)
+        engine.evaluate(listOf(obj(distance = 10f)), nowMs = t0 + 100)
+        engine.evaluate(listOf(obj(distance = 10f)), nowMs = t0 + 300)
+        val r1 = engine.evaluate(listOf(obj(distance = 10f)), nowMs = t0 + 400)
+        assertEquals(AlertLevel.SAFE, r1.level) // Not sustained long enough
+
+        // Bounce back to SAFE briefly
+        engine.evaluate(listOf(obj(distance = 50f)), nowMs = t0 + 450)
+
+        // Return to WARNING — timer must restart from scratch
+        engine.evaluate(listOf(obj(distance = 10f)), nowMs = t0 + 500)
+        val r2 = engine.evaluate(listOf(obj(distance = 10f)), nowMs = t0 + 800)
+        assertEquals(AlertLevel.SAFE, r2.level) // Only 300ms since restart, not enough
+
+        // After full 500ms from the restart, it should escalate
+        val r3 = engine.evaluate(listOf(obj(distance = 10f)), nowMs = t0 + 1100)
+        assertEquals(AlertLevel.WARNING, r3.level)
+    }
+
+    @Test
     fun `among same-level threats picks the closer one`() {
         val objects = listOf(
             obj(distance = 12f, trackId = 1), // WARNING

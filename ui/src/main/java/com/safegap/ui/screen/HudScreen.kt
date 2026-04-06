@@ -1,6 +1,5 @@
 package com.safegap.ui.screen
 
-import android.Manifest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -26,10 +25,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
 import androidx.camera.view.PreviewView
 import com.safegap.ui.HudViewModel
 import com.safegap.ui.R
@@ -42,9 +37,9 @@ import kotlinx.coroutines.delay
 
 private const val AUTO_DISMISS_MS = 5000L
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HudScreen(
+    isCameraPermissionGranted: Boolean,
     onPreviewViewReady: (PreviewView) -> Unit,
     onSettingsClick: () -> Unit,
     isDebug: Boolean = false,
@@ -55,7 +50,6 @@ fun HudScreen(
     val zoomState by viewModel.zoomState.collectAsStateWithLifecycle()
     val cameraHeightM by viewModel.cameraHeightM.collectAsStateWithLifecycle()
     val focalLengthMm by viewModel.focalLengthMm.collectAsStateWithLifecycle()
-    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     var showQuickSettings by remember { mutableStateOf(false) }
     var lastInteractionMs by remember { mutableLongStateOf(0L) }
@@ -73,7 +67,7 @@ fun HudScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        if (cameraPermissionState.status.isGranted) {
+        if (isCameraPermissionGranted) {
             // Camera preview (bottom layer)
             CameraPreviewSurface(
                 modifier = Modifier.fillMaxSize(),
@@ -154,21 +148,12 @@ fun HudScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                val text = if (cameraPermissionState.status.shouldShowRationale) {
-                    "SafeGap necesita acceso a la camara para detectar objetos y medir distancias. Concede el permiso para continuar."
-                } else {
-                    "Permiso de camara requerido"
-                }
                 Text(
-                    text = text,
+                    text = "Permiso de camara requerido",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(32.dp),
                 )
-            }
-
-            LaunchedEffect(Unit) {
-                cameraPermissionState.launchPermissionRequest()
             }
         }
     }

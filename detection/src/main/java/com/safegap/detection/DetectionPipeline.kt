@@ -1,6 +1,7 @@
 package com.safegap.detection
 
 import android.util.Log
+import com.safegap.camera.BitmapPool
 import com.safegap.camera.CameraFrame
 import com.safegap.core.model.TrackedObject
 import com.safegap.detection.tracking.IoUTracker
@@ -22,6 +23,7 @@ data class PipelineResult(
 class DetectionPipeline @Inject constructor(
     private val objectDetector: ObjectDetector,
     private val ioUTracker: IoUTracker,
+    private val bitmapPool: BitmapPool,
 ) {
     companion object {
         private const val TAG = "SafeGap.Pipeline"
@@ -40,6 +42,9 @@ class DetectionPipeline @Inject constructor(
                 val startMs = System.currentTimeMillis()
 
                 val rawDetections = objectDetector.detect(frame.bitmap, frame.timestampMs)
+                val imageHeight = frame.bitmap.height
+                bitmapPool.release(frame.bitmap)
+
                 val tracked = ioUTracker.update(rawDetections)
 
                 val elapsed = System.currentTimeMillis() - startMs
@@ -49,7 +54,7 @@ class DetectionPipeline @Inject constructor(
                         "${rawDetections.size} detections, ${tracked.size} tracked",
                 )
 
-                emit(PipelineResult(tracked, frame.bitmap.height))
+                emit(PipelineResult(tracked, imageHeight))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
