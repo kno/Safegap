@@ -3,6 +3,7 @@ package com.safegap.app.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
@@ -52,7 +53,8 @@ class DrivingService : LifecycleService() {
     private var wakeLock: PowerManager.WakeLock? = null
 
     @Volatile
-    private var thermalThrottled = false
+    private var thermalStatus = PowerManager.THERMAL_STATUS_NONE
+    private val thermalThrottled: Boolean get() = thermalStatus >= PowerManager.THERMAL_STATUS_MODERATE
     private var frameCount = 0
     private var fpsWindowStartMs = 0L
     private var currentFps = 0f
@@ -85,12 +87,19 @@ class DrivingService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        if (intent?.action == Constants.SERVICE_ACTION_STOP) {
+            Log.i(TAG, "Stop action received — stopping service")
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
         wakeLock?.release()
         wakeLock = null
+        detectionPipeline.close()
         objectDetector.close()
         audioAlertPlayer.release()
         ioUTracker.reset()
@@ -121,10 +130,10 @@ class DrivingService : LifecycleService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val powerManager = getSystemService(PowerManager::class.java)
             powerManager.addThermalStatusListener { status ->
-                val wasThermal = thermalThrottled
-                thermalThrottled = status >= PowerManager.THERMAL_STATUS_SEVERE
-                if (thermalThrottled != wasThermal) {
-                    Log.w(TAG, "Thermal status changed: throttled=$thermalThrottled (status=$status)")
+                val prevStatus = thermalStatus
+                thermalStatus = status
+                if (prevStatus != status) {
+                    Log.w(TAG, "Thermal status changed: $prevStatus -> $status")
                 }
             }
         }
@@ -142,8 +151,14 @@ class DrivingService : LifecycleService() {
                 // FPS tracking
                 updateFps()
 
-                // Skip frames under thermal throttling (process 1 of every 2)
-                if (thermalThrottled && frameCount % 2 != 0) return@collect
+                // Graduated thermal throttling: skip more frames as device heats up
+                val skipFactor = when {
+                    thermalStatus >= PowerManager.THERMAL_STATUS_CRITICAL -> 4  // ~3.75 FPS
+                    thermalStatus >= PowerManager.THERMAL_STATUS_SEVERE -> 2    // ~7.5 FPS
+                    thermalStatus >= PowerManager.THERMAL_STATUS_MODERATE -> 1  // ~10 FPS
+                    else -> 0
+                }
+                if (skipFactor > 0 && frameCount % (skipFactor + 1) != 0) return@collect
 
                 // Estimation
                 val enriched = result.trackedObjects.map { obj ->
@@ -219,12 +234,22 @@ class DrivingService : LifecycleService() {
     }
 
     private fun buildNotification(): Notification {
+        val stopIntent = PendingIntent.getService(
+            this,
+            0,
+            Intent(this, DrivingService::class.java).apply {
+                action = Constants.SERVICE_ACTION_STOP
+            },
+            PendingIntent.FLAG_IMMUTABLE,
+        )
+
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
             .setContentText(getString(R.string.notification_text))
             .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(android.R.drawable.ic_media_pause, "Detener", stopIntent)
             .build()
     }
 }
